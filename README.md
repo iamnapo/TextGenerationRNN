@@ -10,4 +10,4 @@ run `python train.py`.
 
 To sample from a checkpointed model, run `python sample.py`.
 
-Other options: `python train.py --help` and `python sample.py --help`
+Other options: `python train.py --help` and `python sample.py --help`.
