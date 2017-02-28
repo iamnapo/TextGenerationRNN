@@ -19,7 +19,7 @@ class Model:
         elif args.model == 'lstm':
             cell_fn = rnn.BasicLSTMCell
         else:
-            raise Exception("model type not supported: {}".format(args.model))
+            raise Exception("This model type is not supported: {}".format(args.model))
 
         cell = cell_fn(args.rnn_size, state_is_tuple=True)
 
