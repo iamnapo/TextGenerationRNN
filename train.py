@@ -11,32 +11,60 @@ from model import Model
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--data_dir', type=str, default='data/',
+    parser.add_argument('--data_dir',
+                        type=str,
+                        default='data/',
                         help='data directory containing input.txt')
-    parser.add_argument('--save_dir', type=str, default='save',
+    parser.add_argument('--save_dir',
+                        type=str,
+                        default='save',
                         help='directory to store checkpointed models')
-    parser.add_argument('--rnn_size', type=int, default=128,
+    parser.add_argument('--rnn_size',
+                        type=int,
+                        default=128,
                         help='size of RNN hidden state')
-    parser.add_argument('--num_layers', type=int, default=2,
+    parser.add_argument('--num_layers',
+                        type=int,
+                        default=2,
                         help='number of layers in the RNN')
-    parser.add_argument('--model', type=str, default='lstm',
+    parser.add_argument('--model',
+                        type=str,
+                        default='lstm',
                         help='rnn, gru, or lstm')
-    parser.add_argument('--batch_size', type=int, default=50,
+    parser.add_argument('--batch_size',
+                        type=int,
+                        default=50,
                         help='minibatch size')
-    parser.add_argument('--seq_length', type=int, default=50,
+    parser.add_argument('--seq_length',
+                        type=int,
+                        default=50,
                         help='RNN sequence length')
-    parser.add_argument('--num_epochs', type=int, default=100,
+    parser.add_argument('--num_epochs',
+                        type=int,
+                        default=100,
                         help='number of epochs')
-    parser.add_argument('--save_every', type=int, default=1000,
+    parser.add_argument('--save_every',
+                        type=int,
+                        default=1000,
                         help='save frequency')
-    parser.add_argument('--grad_clip', type=float, default=5.,
+    parser.add_argument('--grad_clip',
+                        type=float,
+                        default=5.,
                         help='clip gradients at this value')
-    parser.add_argument('--learning_rate', type=float, default=0.002,
+    parser.add_argument('--learning_rate',
+                        type=float,
+                        default=0.002,
                         help='learning rate')
-    parser.add_argument('--decay_rate', type=float, default=0.5,
+    parser.add_argument('--decay_rate',
+                        type=float,
+                        default=0.5,
                         help='decay rate for rmsprop')
-    parser.add_argument('--init_from', type=str, default=None,
-                        help="""continue training from saved model at this path. Path must contain files saved by previous training process:
+    parser.add_argument(
+        '--init_from',
+        type=str,
+        default=None,
+        help=
+        """continue training from saved model at this path. Path must contain files saved by previous training process:
                             'config.pkl'        : configuration;
                             'chars_vocab.pkl'   : vocabulary definitions;
                             'checkpoint'        : paths to model file(s) (created by tf).
@@ -56,9 +84,11 @@ def train(args):
     ckpt = None
     if args.init_from is not None:
         # check if all necessary files exist
-        assert os.path.isdir(args.init_from), " %s must be a directory." % args.init_from
+        assert os.path.isdir(
+            args.init_from), " %s must be a directory." % args.init_from
         assert os.path.isfile(
-            os.path.join(args.init_from, "config.pkl")), "config.pkl file does not exist in path %s." % args.init_from
+            os.path.join(args.init_from, "config.pkl")
+        ), "config.pkl file does not exist in path %s." % args.init_from
         assert os.path.isfile(os.path.join(args.init_from,
                                            "chars_vocab.pkl")), "chars_vocab.pkl file does not exist in path %s." % \
                                                                 args.init_from
@@ -71,8 +101,9 @@ def train(args):
             saved_model_args = pickle.load(f)
         need_be_same = ["model", "rnn_size", "num_layers", "seq_length"]
         for checkme in need_be_same:
-            assert vars(saved_model_args)[checkme] == vars(args)[
-                checkme], "Command line argument and saved model disagree on '%s' ." % checkme
+            assert vars(saved_model_args)[checkme] == vars(
+                args
+            )[checkme], "Command line argument and saved model disagree on '%s' ." % checkme
 
         # open saved vocab/dict and check if vocabs/dicts are compatible
         with open(os.path.join(args.init_from, 'chars_vocab.pkl'), 'rb') as f:
@@ -94,7 +125,8 @@ def train(args):
         if args.init_from is not None:
             saver.restore(sess, ckpt.model_checkpoint_path)
         for e in range(args.num_epochs):
-            sess.run(tf.assign(model.lr, args.learning_rate * (args.decay_rate ** e)))
+            sess.run(
+                tf.assign(model.lr, args.learning_rate * (args.decay_rate**e)))
             data_loader.reset_batch_pointer()
             state = sess.run(model.initial_state)
             for b in range(data_loader.num_batches):
@@ -104,16 +136,20 @@ def train(args):
                 for i, (c, h) in enumerate(model.initial_state):
                     feed[c] = state[i].c
                     feed[h] = state[i].h
-                train_loss, state, _ = sess.run([model.cost, model.final_state, model.train_op], feed)
+                train_loss, state, _ = sess.run(
+                    [model.cost, model.final_state, model.train_op], feed)
                 end = time.time()
-                print("Iteration: {}/{} (epoch {}), training loss = {:.3f}, time/batch = {:.3f}."
-                      .format(e * data_loader.num_batches + b,
-                              args.num_epochs * data_loader.num_batches,
-                              e, train_loss, end - start))
+                print(
+                    "Iteration: {}/{} (epoch {}), training loss = {:.3f}, time/batch = {:.3f}."
+                    .format(e * data_loader.num_batches + b,
+                            args.num_epochs * data_loader.num_batches, e,
+                            train_loss, end - start))
                 if (e * data_loader.num_batches + b) % args.save_every == 0 \
                         or (e == args.num_epochs - 1 and b == data_loader.num_batches - 1):  # save for the last result
                     checkpoint_path = os.path.join(args.save_dir, 'model.ckpt')
-                    saver.save(sess, checkpoint_path, global_step=e * data_loader.num_batches + b)
+                    saver.save(sess,
+                               checkpoint_path,
+                               global_step=e * data_loader.num_batches + b)
                     print("Model saved to {}.".format(checkpoint_path))
 
 
